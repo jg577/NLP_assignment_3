@@ -66,6 +66,13 @@ class ParserModel(nn.Module):
 
         ### END YOUR CODE
 
+        self.embed_to_hidden = nn.Linear(self.embed_size*self.n_features,
+                                         self.hidden_size)
+        nn.init.xavier_uniform_(self.embed_to_hidden.weight, gain=1.0)
+        self.dropout = nn.Dropout()
+        self.hidden_to_logits = nn.Linear(self.hidden_size, self.n_classes)
+        nn.init.xavier_uniform_(self.hidden_to_logits.weight, gain=1.0)
+
     def embedding_lookup(self, t):
         """ Utilize `self.pretrained_embeddings` to map input `t` from input tokens (integers)
             to embedding vectors.
@@ -96,7 +103,10 @@ class ParserModel(nn.Module):
         ###     View: https://pytorch.org/docs/stable/tensors.html#torch.Tensor.view
 
         ### END YOUR CODE
-        return x
+        tokens  = self.pretrained_embeddings(t)
+        batch_size = t.shape[0]
+        tokens  = tokens.view(batch_size, self.n_features*self.embed_size)
+        return tokens
 
     def forward(self, t):
         """ Run the model forward.
@@ -132,4 +142,9 @@ class ParserModel(nn.Module):
         ###     ReLU: https://pytorch.org/docs/stable/nn.functional.html?highlight=relu#torch.nn.functional.relu
 
         ### END YOUR CODE
+
+        embeddings = self.embedding_lookup(t)
+        hidden = self.embed_to_hidden(embeddings)
+        relu = nn.functional.relu(hidden, inplace=False)
+        logits = self.hidden_to_logits(relu)
         return logits
